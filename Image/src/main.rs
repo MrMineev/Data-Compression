@@ -2,7 +2,12 @@ mod logger;
 mod RGB;
 mod DCT;
 mod Decoder;
+mod Saver;
+mod test;
 
+use Saver::rle_encode;
+
+use Saver::save_data;
 use logger::logger::Logger;
 use RGB::RGB::Rgb;
 
@@ -20,9 +25,33 @@ use std::collections::HashMap;
 
 use image::GenericImageView;
 
+use test::status;
+use test::run_test;
+
+use flate2::Compression;
+use flate2::write::GzEncoder;
+use flate2::read::GzDecoder;
+use serde::{Serialize, Deserialize};
+
 pub const IMG_PATH: &str = "tree.png";
 
+fn save_compressed_json(data: &str, file_path: &str) -> std::io::Result<()> {
+    // Create a Gzip encoder
+    let file = File::create(file_path)?;
+    let encoder = GzEncoder::new(file, Compression::default());
+
+    // Write the compressed JSON data to the file
+    let mut writer = std::io::BufWriter::new(encoder);
+    writer.write_all(data.as_bytes())?;
+
+    Ok(())
+}
+
 fn main() {
+    if status() == true {
+        run_test();
+        return;
+    }
     // Open the image file
     let image_path = Path::new(IMG_PATH);
     let img = match image::open(image_path) {
@@ -96,23 +125,22 @@ fn main() {
         }
     }
 
-    let mut dct_result: HashMap<String, Vec<Vec<Vec<f32>>>> = HashMap::new();
+    let mut dct_result: HashMap<String, Vec<String>> = HashMap::new();
     for i in 0..block_width_count {
         for j in 0..block_height_count {
             dct_result.insert(
-                format!("{} | {}", i, j),
+                format!("{}|{}", i, j),
                 vec![
-                    blocks[i as usize][j as usize].0.export_dct(),
-                    blocks[i as usize][j as usize].1.export_dct(),
-                    blocks[i as usize][j as usize].2.export_dct(),
+                    save_data(blocks[i as usize][j as usize].0.export_dct()),
+                    save_data(blocks[i as usize][j as usize].1.export_dct()),
+                    save_data(blocks[i as usize][j as usize].2.export_dct()),
                 ]
             );
         }
     }
 
     let json_data = serde_json::to_string(&dct_result).expect("Failed to serialize HashMap to JSON");
-    let mut file = File::create("logs/file.json").expect("Failed to create file");
-    file.write_all(json_data.as_bytes()).expect("Failed to write JSON to file");
+    save_compressed_json(&json_data, "logs/file.json").expect("Failed to save compressed JSON");
 
     Logger::info("src/main.rs".to_string(), "Saved Encoded Data!".to_string());
     Logger::info("src/main.rs".to_string(), "Decoding Data!".to_string());

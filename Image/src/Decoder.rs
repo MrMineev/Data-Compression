@@ -11,6 +11,30 @@ use crate::logger::logger::Logger;
 
 use image::{ImageBuffer};
 
+use crate::Saver::{
+    rle_decode,
+    load_data,
+};
+
+use flate2::Compression;
+use flate2::write::GzEncoder;
+use flate2::read::GzDecoder;
+
+use serde::{Deserialize, Serialize};
+
+fn load_compressed_json(file_path: &str) -> std::io::Result<String> {
+    // Open the compressed JSON file
+    let file = File::open(file_path)?;
+    let decoder = GzDecoder::new(file);
+
+    // Read the compressed JSON data from the file
+    let mut reader = std::io::BufReader::new(decoder);
+    let mut contents = String::new();
+    reader.read_to_string(&mut contents)?;
+
+    Ok(contents)
+}
+
 fn save_image_to_png(image_data: &[Vec<(usize, usize, usize)>], file_path: &str) {
     // Get the dimensions of the image
     let height = image_data.len();
@@ -45,12 +69,29 @@ pub fn to_rgb(y: f32, cb: f32, cr: f32) -> Rgb {
 }
 
 pub fn decode(width: usize, height: usize, json_path: String, res_path: String) {
-    let mut file = File::open(json_path).expect("Failed to open file");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read file");
+    let compressed_json = load_compressed_json(&json_path).expect("Failed to load compressed JSON");
 
-    let data: HashMap<String, Vec<Vec<Vec<f32>>>> =
-        serde_json::from_str(&contents).expect("Failed to parse JSON");
+    // Deserialize the JSON data
+    let ldata: HashMap<String, Vec<String>> =
+        serde_json::from_str(&compressed_json).expect("Failed to parse JSON");
+
+    let mut data: HashMap<String, Vec<Vec<Vec<f32>>>> = HashMap::new();
+    for x in 0..width {
+        for y in 0..height {
+            let s: String = format!("{}|{}", x, y);
+
+            if let Some(r) = ldata.get(&s) {
+                data.insert(
+                    s.clone(),
+                    vec![
+                        load_data(r[0].clone()),
+                        load_data(r[1].clone()),
+                        load_data(r[2].clone()),
+                    ]
+                );
+            }
+        }
+    }
 
     let mut image_y: Vec<Vec<f32>> = vec![vec![0.0; height * 8]; width * 8];
     let mut image_cb: Vec<Vec<f32>> = vec![vec![0.0; height * 8]; width * 8];
@@ -60,7 +101,7 @@ pub fn decode(width: usize, height: usize, json_path: String, res_path: String) 
 
     for x in 0..width {
         for y in 0..height {
-            let s: String = format!("{} | {}", x, y);
+            let s: String = format!("{}|{}", x, y);
 
             if let Some(block) = data.get(&s) {
                 let y_block_read = block[0].clone();
