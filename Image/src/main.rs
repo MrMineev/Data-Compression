@@ -20,7 +20,7 @@ use std::collections::HashMap;
 
 use image::GenericImageView;
 
-pub const IMG_PATH: &str = "8x16-simple.png";
+pub const IMG_PATH: &str = "tree.png";
 
 fn main() {
     // Open the image file

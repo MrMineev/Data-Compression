@@ -38,6 +38,17 @@ fn alpha(n: usize) -> f32 {
 }
 
 pub fn dct(block: Vec<Vec<f32>>) -> DctBlock {
+    let Quantization: Vec<Vec<usize>> = vec![
+        vec![16, 11, 10, 16, 24, 40, 51, 61],
+        vec![12, 12, 14, 19, 26, 58, 60, 55],
+        vec![14, 13, 16, 24, 40, 57, 69, 56],
+        vec![14, 17, 22, 29, 51, 87, 80, 62],
+        vec![18, 22, 37, 56, 68, 109, 103, 77],
+        vec![24, 35, 55, 64, 81, 104, 113, 92],
+        vec![49, 64, 78, 87, 103, 121, 120, 101],
+        vec![72, 92, 95, 98, 112, 100, 103, 99]
+    ];
+
     let mut mas: Vec<Vec<f32>> = vec![vec![0.0; block[0].len()]; block.len()];
     for u in 0..8 {
         for v in 0..8 {
@@ -56,7 +67,7 @@ pub fn dct(block: Vec<Vec<f32>>) -> DctBlock {
             }
             total_amount *= adding;
 
-            mas[u][v] = total_amount;
+            mas[u][v] = (total_amount / (Quantization[u][v] as f32) ).round();
         }
     }
 
@@ -64,6 +75,17 @@ pub fn dct(block: Vec<Vec<f32>>) -> DctBlock {
 }
 
 pub fn inverse_dct(block: Vec<Vec<f32>>) -> DctBlock {
+    let Quantization: Vec<Vec<usize>> = vec![
+        vec![16, 11, 10, 16, 24, 40, 51, 61],
+        vec![12, 12, 14, 19, 26, 58, 60, 55],
+        vec![14, 13, 16, 24, 40, 57, 69, 56],
+        vec![14, 17, 22, 29, 51, 87, 80, 62],
+        vec![18, 22, 37, 56, 68, 109, 103, 77],
+        vec![24, 35, 55, 64, 81, 104, 113, 92],
+        vec![49, 64, 78, 87, 103, 121, 120, 101],
+        vec![72, 92, 95, 98, 112, 100, 103, 99]
+    ];
+
     let mut mas: Vec<Vec<f32>> = vec![vec![0.0; block[0].len()]; block.len()];
     for x in 0..8 {
         for y in 0..8 {
@@ -83,7 +105,7 @@ pub fn inverse_dct(block: Vec<Vec<f32>>) -> DctBlock {
 
             total_amount *= adding;
 
-            mas[x][y] = total_amount;
+            mas[x][y] = total_amount * (Quantization[x][y] as f32);
         }
     }
 
