@@ -33,7 +33,7 @@ use flate2::write::GzEncoder;
 use flate2::read::GzDecoder;
 use serde::{Serialize, Deserialize};
 
-pub const IMG_PATH: &str = "tree.png";
+pub const IMG_PATH: &str = "16x16-simple.png";
 
 fn save_compressed_json(data: &str, file_path: &str) -> std::io::Result<()> {
     // Create a Gzip encoder
